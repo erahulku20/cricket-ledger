@@ -1,0 +1,23 @@
+services:
+  - type: web_service
+    name: cricket-ledger-backend
+    env: node
+    plan: free
+    branch: main
+    root: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+  - type: static_site
+    name: cricket-ledger-frontend
+    env: static
+    plan: free
+    branch: main
+    root: frontend
+    buildCommand: npm install && npm run build
+    publishPath: build
+    envVars:
+      - key: REACT_APP_API_BASE_URL
+        value: https://cricket-ledger-backend.onrender.com/api
