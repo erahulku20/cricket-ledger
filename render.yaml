@@ -20,4 +20,4 @@ services:
     publishPath: build
     envVars:
       - key: REACT_APP_API_BASE_URL
-        value: https://cricket-ledger-backend.onrender.com/api
+        value: https://cricket-backend-zreq.onrender.com/api
