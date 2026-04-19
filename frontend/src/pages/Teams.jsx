@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { teamsAPI, backupAPI } from '../api';
+import { teamsAPI, backupAPI, isReadOnly } from '../api';
 
 export default function Teams() {
+  const readOnly = isReadOnly;
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -66,11 +67,16 @@ export default function Teams() {
             <p className="section-note">
               Create and manage squads with a clearer team overview and activity quick links.
             </p>
+            {readOnly && (
+              <p className="mt-2 text-sm text-rose-700">Read-only mode is active. Create, edit, and delete actions are disabled.</p>
+            )}
           </div>
           <div className="flex flex-wrap gap-3">
-            <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-3 text-sm shadow-lg">
-              + New Team
-            </button>
+            {!readOnly && (
+              <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-3 text-sm shadow-lg">
+                + New Team
+              </button>
+            )}
             <button onClick={exportBackup} className="btn-muted px-5 py-3 text-sm shadow-lg">
               Export Backup
             </button>
@@ -78,7 +84,7 @@ export default function Teams() {
         </div>
       </section>
 
-      {showForm && (
+      {showForm && !readOnly && (
         <div className="form-card p-6 fade-in">
           <div className="section-header mb-5">
             <div>
@@ -129,20 +135,27 @@ export default function Teams() {
                     </p>
                     <p className="mt-2 text-xs text-emerald-900/50">Created {new Date(team.created_at).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => startEdit(team)} className="text-emerald-700 hover:text-emerald-900 text-lg p-2 rounded-full bg-emerald-50 transition">
-                      ✏️
-                    </button>
-                    <button onClick={() => deleteTeam(team.id)} className="text-rose-500 hover:text-rose-700 text-lg p-2 rounded-full bg-rose-50 transition">
-                      🗑️
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex gap-2">
+                      <button onClick={() => startEdit(team)} className="text-emerald-700 hover:text-emerald-900 text-lg p-2 rounded-full bg-emerald-50 transition">
+                        ✏️
+                      </button>
+                      <button onClick={() => deleteTeam(team.id)} className="text-rose-500 hover:text-rose-700 text-lg p-2 rounded-full bg-rose-50 transition">
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="border-t border-emerald-100 bg-emerald-50/70 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <Link to={`/teams/${team.id}`} className="text-sm text-emerald-700 font-medium hover:text-emerald-900 hover:underline">
-                  Manage Players →
-                </Link>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link to={`/teams/${team.id}/dashboard`} className="text-sm text-emerald-700 font-medium hover:text-emerald-900 hover:underline">
+                    📊 Dashboard
+                  </Link>
+                  <Link to={`/teams/${team.id}`} className="text-sm text-emerald-700 font-medium hover:text-emerald-900 hover:underline">
+                    👥 Manage Players
+                  </Link>
+                </div>
                 <Link to={`/matches?team_id=${team.id}`} className="text-sm text-emerald-800 font-medium hover:text-emerald-900 hover:underline">
                   View Matches
                 </Link>

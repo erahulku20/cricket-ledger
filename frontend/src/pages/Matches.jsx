@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { matchesAPI, teamsAPI } from '../api';
+import { matchesAPI, teamsAPI, isReadOnly } from '../api';
 
 const STATUS_COLORS = {
   upcoming: 'bg-blue-100 text-blue-700',
@@ -9,6 +9,7 @@ const STATUS_COLORS = {
 };
 
 export default function Matches() {
+  const readOnly = isReadOnly;
   const [matches, setMatches] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,11 +50,16 @@ export default function Matches() {
             <p className="section-note">
               Plan fixtures, track attendance, and keep every match organized in a more visual workflow.
             </p>
+            {readOnly && (
+              <p className="mt-2 text-sm text-rose-700">Read-only mode is active. Creating and deleting matches is disabled.</p>
+            )}
           </div>
-          <button onClick={() => setShowForm(true)} disabled={teams.length === 0}
-            className="btn-primary px-5 py-3 text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-            + New Match
-          </button>
+          {!readOnly && (
+            <button onClick={() => setShowForm(true)} disabled={teams.length === 0}
+              className="btn-primary px-5 py-3 text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+              + New Match
+            </button>
+          )}
         </div>
       </section>
 
@@ -65,7 +71,7 @@ export default function Matches() {
         </div>
       )}
 
-      {showForm && (
+      {showForm && !readOnly && (
         <div className="form-card p-6 fade-in">
           <div className="section-header mb-5">
             <div>
@@ -145,9 +151,11 @@ export default function Matches() {
                   <Link to={`/matches/${match.id}`} className="btn-muted bg-white border border-emerald-200 text-emerald-700 px-4 py-2 text-sm hover:bg-emerald-50">
                     Open
                   </Link>
-                  <button onClick={() => deleteMatch(match.id)} className="btn-muted text-rose-600 border-rose-200 hover:bg-rose-50 px-4 py-2 text-sm">
-                    Delete
-                  </button>
+                  {!readOnly && (
+                    <button onClick={() => deleteMatch(match.id)} className="btn-muted text-rose-600 border-rose-200 hover:bg-rose-50 px-4 py-2 text-sm">
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

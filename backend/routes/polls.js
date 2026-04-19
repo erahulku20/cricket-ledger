@@ -4,6 +4,9 @@ const { db } = require('../database');
 
 // GET polls for a match
 router.get('/match/:matchId', (req, res) => {
+  const match = db.prepare('SELECT team_id FROM matches WHERE id = ?').get(req.params.matchId);
+  if (!match) return res.status(404).json({ error: 'Match not found' });
+
   const polls = db.prepare('SELECT * FROM polls WHERE match_id = ? ORDER BY created_at DESC').all(req.params.matchId);
   const result = polls.map(poll => {
     const responses = db.prepare(`

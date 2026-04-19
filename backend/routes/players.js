@@ -2,12 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
 
-// GET all players (optionally filter by team)
+// GET all players (requires team_id for isolation)
 router.get('/', (req, res) => {
   const { team_id } = req.query;
-  const players = team_id
-    ? db.prepare('SELECT p.*, t.name as team_name FROM players p JOIN teams t ON t.id = p.team_id WHERE p.team_id = ? ORDER BY p.name').all(team_id)
-    : db.prepare('SELECT p.*, t.name as team_name FROM players p JOIN teams t ON t.id = p.team_id ORDER BY p.name').all();
+
+  if (!team_id) {
+    return res.status(400).json({ error: 'team_id is required for data isolation' });
+  }
+
+  const players = db.prepare('SELECT p.*, t.name as team_name FROM players p JOIN teams t ON t.id = p.team_id WHERE p.team_id = ? ORDER BY p.name').all(team_id);
   res.json(players);
 });
 
@@ -15,6 +18,7 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const player = db.prepare('SELECT p.*, t.name as team_name FROM players p JOIN teams t ON t.id = p.team_id WHERE p.id = ?').get(req.params.id);
   if (!player) return res.status(404).json({ error: 'Player not found' });
+
   res.json(player);
 });
 

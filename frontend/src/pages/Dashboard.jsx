@@ -18,10 +18,18 @@ function StatCard({ icon, label, value, color }) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    dashboardAPI.get().then(d => { setData(d); setLoading(false); });
+    Promise.all([
+      dashboardAPI.get(),
+      fetch('/api/teams').then(r => r.json())
+    ]).then(([dashboardData, teamsData]) => {
+      setData(dashboardData);
+      setTeams(teamsData);
+      setLoading(false);
+    });
   }, []);
 
   if (loading) return <div className="flex justify-center py-20 text-emerald-700/70 text-lg">Loading...</div>;
@@ -35,12 +43,6 @@ export default function Dashboard() {
     ? Math.round(((data.totalExpenses - data.unsettledExpenses) / data.totalExpenses) * 100)
     : 0;
 
-  const pulseMetrics = [
-    { label: 'Live matches', value: data.upcomingMatches, icon: '🏏', accent: 'blue' },
-    { label: 'Settled amount', value: `${settledPercentage}%`, icon: '💱', accent: 'green' },
-    { label: 'Completed', value: data.completedMatches, icon: '✅', accent: 'violet' },
-  ];
-
   return (
     <div className="space-y-6">
       <section className="section-panel p-6 fade-in">
@@ -53,59 +55,6 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-          <div className="panel p-6 relative overflow-hidden league-pulse-card fade-in">
-            <div className="pulse-ring"></div>
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.28em] text-slate-500">League pulse</p>
-                <h2 className="text-3xl font-bold text-emerald-950 mt-3">Smooth season tracking</h2>
-                <p className="mt-3 text-sm leading-7 text-slate-600 max-w-xl">
-                  Explore match throughput, team health, and expense momentum in one clean view. The league dashboard makes progress easy to scan.
-                </p>
-              </div>
-              <div className="pulse-value-card">
-                <p className="text-sm uppercase tracking-[0.26em] text-slate-500">Expenses</p>
-                <p className="mt-2 text-4xl font-bold text-rose-900">₹{data.totalExpenses.toFixed(0)}</p>
-                <p className="text-xs text-slate-500 mt-1">Total costs logged</p>
-              </div>
-            </div>
-
-            <div className="mt-8 mini-chart">
-              <div className="mini-chart-row">
-                <span>Week 1</span>
-                <div className="mini-chart-track"><div className="chart-bar h-7 w-[44%]"></div></div>
-              </div>
-              <div className="mini-chart-row">
-                <span>Week 2</span>
-                <div className="mini-chart-track"><div className="chart-bar h-10 w-[62%] accent"></div></div>
-              </div>
-              <div className="mini-chart-row">
-                <span>Week 3</span>
-                <div className="mini-chart-track"><div className="chart-bar h-5 w-[35%]"></div></div>
-              </div>
-              <div className="mini-chart-row">
-                <span>Week 4</span>
-                <div className="mini-chart-track"><div className="chart-bar h-9 w-[58%] accent"></div></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4">
-            {pulseMetrics.map((item) => (
-              <div key={item.label} className={`panel card-elevated p-5 hover:-translate-y-1 transition-transform duration-200 ${item.accent === 'blue' ? 'border-blue-200' : item.accent === 'green' ? 'border-green-200' : 'border-violet-200'}`}>
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.26em] text-slate-500">{item.label}</p>
-                    <p className="mt-3 text-3xl font-bold text-slate-900">{item.value}</p>
-                  </div>
-                  <div className="text-3xl">{item.icon}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       <div className="summary-grid">
@@ -115,19 +64,41 @@ export default function Dashboard() {
         <StatCard icon="📅" label="Upcoming" value={data.upcomingMatches} color="border-violet-500" />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-5">
-        <div className="space-y-4">
-          <div className="panel p-5 rounded-[28px] border-l-4 border-rose-400 bg-rose-50/75 fade-in">
-            <p className="text-sm text-rose-700/90">Total Expenses</p>
-            <p className="text-3xl font-bold text-rose-800">₹{data.totalExpenses.toFixed(2)}</p>
-            <p className="mt-2 text-xs text-rose-700/70">Track spending across matches, party costs, and reimbursements.</p>
+      {teams.length > 0 && (
+        <div className="panel p-5 rounded-[28px] fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-emerald-50/60 px-5 py-4 border-b border-emerald-100 mb-4">
+            <div>
+              <h2 className="font-semibold text-emerald-900">Team Dashboards</h2>
+              <p className="text-sm text-emerald-900/70 mt-1">Quick access to individual team overviews and management.</p>
+            </div>
+            <Link to="/teams" className="inline-flex items-center gap-1 text-sm text-emerald-700 font-semibold hover:underline">
+              Manage teams
+              <span>→</span>
+            </Link>
           </div>
-          <div className="panel p-5 rounded-[28px] border-l-4 border-amber-500 bg-amber-50/80 fade-in">
-            <p className="text-sm text-amber-800/80">Unsettled Amount</p>
-            <p className="text-3xl font-bold text-amber-900">₹{data.unsettledExpenses.toFixed(2)}</p>
-            <p className="mt-2 text-xs text-amber-800/70">Outstanding splits that still need to be settled by your players.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {teams.slice(0, 6).map(team => (
+              <Link
+                key={team.id}
+                to={`/teams/${team.id}/dashboard`}
+                className="block p-4 bg-white rounded-lg border border-emerald-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-sm font-semibold text-emerald-700">
+                    {team.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium text-emerald-900">{team.name}</p>
+                    <p className="text-xs text-emerald-900/60">{team.player_count} players</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-5">
         <div className="panel p-5 rounded-[28px] overflow-hidden fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-emerald-50/60 px-5 py-4 border-b border-emerald-100">
             <div>

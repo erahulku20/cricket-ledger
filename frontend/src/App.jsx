@@ -1,8 +1,7 @@
-import { BrowserRouter, Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
+import { BrowserRouter, Routes, Route, NavLink, Link, useLocation, Navigate } from 'react-router-dom';
 import Teams from './pages/Teams';
 import TeamDetail from './pages/TeamDetail';
-import Matches from './pages/Matches';
+import TeamDashboard from './pages/TeamDashboard';
 import MatchDetail from './pages/MatchDetail';
 
 function Navbar() {
@@ -20,9 +19,7 @@ function Navbar() {
           </div>
         </Link>
         <div className="nav-links">
-          <NavLink to="/" end className={linkClass}>Dashboard</NavLink>
-          <NavLink to="/teams" className={linkClass}>Teams</NavLink>
-          <NavLink to="/matches" className={linkClass}>Matches</NavLink>
+          {/* Teams page removed from navigation for isolation - access via direct URL */}
         </div>
       </div>
     </nav>
@@ -31,7 +28,7 @@ function Navbar() {
 
 function AppShell() {
   const location = useLocation();
-  const showHero = location.pathname === '/';
+  const showHero = location.pathname === '/teams';
 
   return (
     <div className="app-shell">
@@ -41,14 +38,14 @@ function AppShell() {
           <section className="hero-banner">
             <div className="hero-card">
               <div className="hero-copy-block">
-                <p className="eyebrow">Cricket league management</p>
-                <h1 className="hero-title">A clean dashboard for teams, fixtures, and shared expenses.</h1>
+                <p className="eyebrow">Team management</p>
+                <h1 className="hero-title">Organize your cricket teams and track everything in one place.</h1>
                 <p className="hero-copy">
-                  Everything you already track is now presented with polished cards, smarter spacing, and a consistent visual system. Navigate faster and keep your league running smoothly.
+                  Create teams, manage players, schedule matches, and handle expenses. Each team gets their own isolated dashboard with dedicated insights and controls.
                 </p>
                 <div className="hero-actions">
-                  <Link to="/teams" className="btn-primary">Manage teams</Link>
-                  <Link to="/matches" className="btn-muted">View fixtures</Link>
+                  <p className="hero-note">Access your team dashboard directly via URL (e.g., /team/1/dashboard)</p>
+                  <Link to="/teams" className="btn-secondary">Team Admin</Link>
                 </div>
               </div>
               <div className="hero-visual">
@@ -69,10 +66,10 @@ function AppShell() {
         )}
         <main className="content-shell">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/teams" replace />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/teams/:id" element={<TeamDetail />} />
-            <Route path="/matches" element={<Matches />} />
+            <Route path="/teams/:id/dashboard" element={<TeamDashboard />} />
             <Route path="/matches/:id" element={<MatchDetail />} />
           </Routes>
         </main>

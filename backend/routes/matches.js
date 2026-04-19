@@ -2,18 +2,18 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../database');
 
-// GET all matches (optionally filter by team)
+// GET all matches (requires team_id for isolation)
 router.get('/', (req, res) => {
   const { team_id } = req.query;
-  const matches = team_id
-    ? db.prepare(`SELECT m.*, t.name as team_name,
-        (SELECT COUNT(*) FROM attendance a WHERE a.match_id = m.id AND a.status = 'attended') as attended_count,
-        (SELECT COUNT(*) FROM attendance a WHERE a.match_id = m.id AND a.status = 'not_attended') as not_attended_count
-        FROM matches m JOIN teams t ON t.id = m.team_id WHERE m.team_id = ? ORDER BY m.match_date DESC`).all(team_id)
-    : db.prepare(`SELECT m.*, t.name as team_name,
-        (SELECT COUNT(*) FROM attendance a WHERE a.match_id = m.id AND a.status = 'attended') as attended_count,
-        (SELECT COUNT(*) FROM attendance a WHERE a.match_id = m.id AND a.status = 'not_attended') as not_attended_count
-        FROM matches m JOIN teams t ON t.id = m.team_id ORDER BY m.match_date DESC`).all();
+
+  if (!team_id) {
+    return res.status(400).json({ error: 'team_id is required for data isolation' });
+  }
+
+  const matches = db.prepare(`SELECT m.*, t.name as team_name,
+    (SELECT COUNT(*) FROM attendance a WHERE a.match_id = m.id AND a.status = 'attended') as attended_count,
+    (SELECT COUNT(*) FROM attendance a WHERE a.match_id = m.id AND a.status = 'not_attended') as not_attended_count
+    FROM matches m JOIN teams t ON t.id = m.team_id WHERE m.team_id = ? ORDER BY m.match_date DESC`).all(team_id);
   res.json(matches);
 });
 

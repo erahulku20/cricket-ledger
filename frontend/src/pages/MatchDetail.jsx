@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { matchesAPI, expensesAPI, pollsAPI } from '../api';
+import { matchesAPI, expensesAPI, pollsAPI, isReadOnly } from '../api';
 
 const STATUS_COLORS = { upcoming: 'bg-blue-100 text-blue-700', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' };
 const RESPONSE_STYLES = { available: 'bg-green-100 text-green-700 border-green-300', not_available: 'bg-red-100 text-red-700 border-red-300', maybe: 'bg-yellow-100 text-yellow-700 border-yellow-300' };
 const RESPONSE_LABELS = { available: '✅ Available', not_available: '❌ Not Available', maybe: '🤔 Maybe' };
 
 // ─── Attendance Section ────────────────────────────────────────────────────────
-function AttendanceSection({ match, onRefresh }) {
+function AttendanceSection({ match, onRefresh, readOnly }) {
   const [local, setLocal] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -43,9 +43,9 @@ function AttendanceSection({ match, onRefresh }) {
         <div className="flex items-center gap-3">
           <span className="text-sm text-emerald-700 font-medium">✅ {attended}</span>
           <span className="text-sm text-rose-600 font-medium">❌ {notAttended}</span>
-          <button onClick={save} disabled={saving}
+          <button onClick={save} disabled={readOnly || saving}
             className="btn-primary px-4 py-1.5 text-sm disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save'}
+            {readOnly ? 'Read-only' : saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
@@ -59,8 +59,8 @@ function AttendanceSection({ match, onRefresh }) {
           };
           const icons = { attended: '✅', not_attended: '❌', not_marked: '⬜' };
           return (
-            <button key={player.id} onClick={() => toggle(player.id, status)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-medium text-left transition-colors cursor-pointer ${styles[status]}`}>
+            <button key={player.id} onClick={() => !readOnly && toggle(player.id, status)}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-medium text-left transition-colors ${readOnly ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${styles[status]}`}>
               <span>{icons[status]}</span>
               <span className="truncate">{player.name}</span>
             </button>
@@ -75,7 +75,7 @@ function AttendanceSection({ match, onRefresh }) {
 }
 
 // ─── Expenses Section ─────────────────────────────────────────────────────────
-function ExpensesSection({ match, onRefresh }) {
+function ExpensesSection({ match, onRefresh, readOnly }) {
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -137,10 +137,14 @@ function ExpensesSection({ match, onRefresh }) {
           <h2 className="font-semibold text-emerald-900">Expenses & Splits</h2>
           <div className="flex items-center gap-3">
             <span className="text-sm text-emerald-900/70">Total: <strong className="text-emerald-950">₹{totalExpenses.toFixed(2)}</strong></span>
-            <button onClick={() => setShowForm(!showForm)}
-              className="btn-primary px-4 py-1.5 text-sm">
-              + Add Expense
-            </button>
+            {!readOnly ? (
+              <button onClick={() => setShowForm(!showForm)}
+                className="btn-primary px-4 py-1.5 text-sm">
+                + Add Expense
+              </button>
+            ) : (
+              <span className="text-sm text-rose-700">Read-only mode active. Expense changes are disabled.</span>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
@@ -153,7 +157,7 @@ function ExpensesSection({ match, onRefresh }) {
         </div>
       </div>
 
-      {showForm && (
+      {showForm && !readOnly && (
         <div className="p-5 border-b border-emerald-100 bg-emerald-50/60">
           <form onSubmit={addExpense} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -242,7 +246,9 @@ function ExpensesSection({ match, onRefresh }) {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-gray-800">₹{exp.amount.toFixed(2)}</span>
-                    <button onClick={() => deleteExpense(exp.id)} className="text-gray-400 hover:text-red-500 text-xs">🗑️</button>
+                    {!readOnly && (
+                      <button onClick={() => deleteExpense(exp.id)} className="text-gray-400 hover:text-red-500 text-xs">🗑️</button>
+                    )}
                   </div>
                 </div>
                 {exp.paid_by_name && (
@@ -254,12 +260,20 @@ function ExpensesSection({ match, onRefresh }) {
                   <p className="text-xs text-gray-500 mb-2 font-medium uppercase">Splits (each ₹{exp.splits.length > 0 ? (exp.amount / exp.splits.length).toFixed(2) : '—'})</p>
                   <div className="flex flex-wrap gap-2">
                     {exp.splits.map(split => (
-                      <button key={split.id} onClick={() => toggleSettle(split)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                          split.settled ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-green-300'
+                      readOnly ? (
+                        <span key={split.id} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${
+                          split.settled ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-600'
                         }`}>
-                        {split.settled ? '✅' : '⬜'} {split.player_name} <span className="font-semibold">₹{split.share_amount.toFixed(2)}</span>
-                      </button>
+                          {split.settled ? '✅' : '⬜'} {split.player_name} <span className="font-semibold">₹{split.share_amount.toFixed(2)}</span>
+                        </span>
+                      ) : (
+                        <button key={split.id} onClick={() => toggleSettle(split)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                            split.settled ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-green-300'
+                          }`}>
+                          {split.settled ? '✅' : '⬜'} {split.player_name} <span className="font-semibold">₹{split.share_amount.toFixed(2)}</span>
+                        </button>
+                      )
                     ))}
                     {exp.splits.length === 0 && <span className="text-xs text-gray-400">No attendees to split among</span>}
                   </div>
@@ -307,7 +321,7 @@ function ExpensesSection({ match, onRefresh }) {
 }
 
 // ─── Polls Section ────────────────────────────────────────────────────────────
-function PollsSection({ match }) {
+function PollsSection({ match, readOnly }) {
   const [polls, setPolls] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [question, setQuestion] = useState('');
@@ -334,20 +348,26 @@ function PollsSection({ match }) {
 
   const deletePoll = async (id) => {
     if (!window.confirm('Delete this poll?')) return;
-    await pollsAPI.delete(id); load();
+    await pollsAPI.delete(id);
+    load();
   };
 
   return (
     <div className="panel fade-in">
-      <div className="px-5 py-4 border-b border-emerald-100 flex items-center justify-between">
-        <h2 className="font-semibold text-emerald-900">Availability Polls</h2>
-        <button onClick={() => setShowForm(!showForm)}
-          className="btn-primary px-4 py-1.5 text-sm">
-          + New Poll
-        </button>
+      <div className="px-5 py-4 border-b border-emerald-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="font-semibold text-emerald-900">Availability Polls</h2>
+          {readOnly && <p className="text-sm text-rose-700 mt-1">Read-only mode is active. Polls and responses are disabled.</p>}
+        </div>
+        {!readOnly ? (
+          <button onClick={() => setShowForm(!showForm)}
+            className="btn-primary px-4 py-1.5 text-sm">
+            + New Poll
+          </button>
+        ) : null}
       </div>
 
-      {showForm && (
+      {showForm && !readOnly && (
         <div className="p-4 border-b border-emerald-100 bg-sky-50/60">
           <form onSubmit={createPoll} className="flex gap-3">
             <input value={question} onChange={e => setQuestion(e.target.value)} required autoFocus
@@ -371,43 +391,47 @@ function PollsSection({ match }) {
 
         {polls.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-6">No polls yet. Create one to check availability!</p>
-        ) : polls.map(poll => (
-          <div key={poll.id} className="border border-gray-100 rounded-xl p-4">
-            <div className="flex items-start justify-between mb-3">
-              <p className="font-medium text-gray-800">{poll.question}</p>
-              <button onClick={() => deletePoll(poll.id)} className="text-gray-400 hover:text-red-500 text-xs ml-2">🗑️</button>
-            </div>
-
-            {/* Summary bar */}
-            <div className="flex gap-3 mb-4 text-sm">
-              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">✅ {poll.summary.available} Available</span>
-              <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-medium">❌ {poll.summary.not_available} No</span>
-              <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-medium">🤔 {poll.summary.maybe} Maybe</span>
-              <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full">⏳ {poll.summary.pending} Pending</span>
-            </div>
-
-            {/* Response buttons */}
-            <div className="flex gap-2 mb-4">
-              {['available', 'not_available', 'maybe'].map(r => (
-                <button key={r} onClick={() => respond(poll.id, r)}
-                  className={`px-3 py-1.5 rounded-lg text-sm border font-medium transition-colors ${RESPONSE_STYLES[r]} hover:opacity-80`}>
-                  {RESPONSE_LABELS[r]}
-                </button>
-              ))}
-            </div>
-
-            {/* Individual responses */}
-            {poll.responses.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {poll.responses.map(r => (
-                  <span key={r.id} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border ${RESPONSE_STYLES[r.response]}`}>
-                    {r.player_name}: {RESPONSE_LABELS[r.response]}
-                  </span>
-                ))}
+        ) : (
+          polls.map(poll => (
+            <div key={poll.id} className="border border-gray-100 rounded-xl p-4">
+              <div className="flex items-start justify-between mb-3">
+                <p className="font-medium text-gray-800">{poll.question}</p>
+                {!readOnly && (
+                  <button onClick={() => deletePoll(poll.id)} className="text-gray-400 hover:text-red-500 text-xs ml-2">🗑️</button>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+
+              {/* Summary bar */}
+              <div className="flex gap-3 mb-4 text-sm">
+                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">✅ {poll.summary.available} Available</span>
+                <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-medium">❌ {poll.summary.not_available} No</span>
+                <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-medium">🤔 {poll.summary.maybe} Maybe</span>
+                <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full">⏳ {poll.summary.pending} Pending</span>
+              </div>
+
+              {!readOnly && (
+                <div className="flex gap-2 mb-4">
+                  {['available', 'not_available', 'maybe'].map(r => (
+                    <button key={r} onClick={() => respond(poll.id, r)}
+                      className={`px-3 py-1.5 rounded-lg text-sm border font-medium transition-colors ${RESPONSE_STYLES[r]} hover:opacity-80`}>
+                      {RESPONSE_LABELS[r]}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {poll.responses.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {poll.responses.map(r => (
+                    <span key={r.id} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border ${RESPONSE_STYLES[r.response]}`}>
+                      {r.player_name}: {RESPONSE_LABELS[r.response]}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -415,6 +439,7 @@ function PollsSection({ match }) {
 
 // ─── Main MatchDetail Page ────────────────────────────────────────────────────
 export default function MatchDetail() {
+  const readOnly = isReadOnly;
   const { id } = useParams();
   const [match, setMatch] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -429,10 +454,13 @@ export default function MatchDetail() {
 
   const updateStatus = async () => {
     await matchesAPI.update(id, {
-      opponent: match.opponent, match_date: match.match_date,
-      venue: match.venue, status: newStatus
+      opponent: match.opponent,
+      match_date: match.match_date,
+      venue: match.venue,
+      status: newStatus,
     });
-    setEditStatus(false); load();
+    setEditStatus(false);
+    load();
   };
 
   if (loading) return <div className="flex justify-center py-20 text-emerald-700/70">Loading...</div>;
@@ -448,7 +476,7 @@ export default function MatchDetail() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Link to="/matches" className="hover:text-slate-700">← Matches</Link>
+              <Link to={`/teams/${match.team_id}/dashboard`} className="hover:text-slate-700">← {match.team_name} Dashboard</Link>
               <span className="text-slate-300">/</span>
               <span className="text-slate-400">Match detail</span>
             </div>
@@ -476,7 +504,9 @@ export default function MatchDetail() {
             ) : (
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
                 <span className={`${STATUS_COLORS[match.status]} px-2 py-1 rounded-full text-xs font-semibold`}>{match.status}</span>
-                <button onClick={() => setEditStatus(true)} className="text-slate-500 hover:text-slate-700 transition">✏️ Edit status</button>
+                {!readOnly && (
+                  <button onClick={() => setEditStatus(true)} className="text-slate-500 hover:text-slate-700 transition">✏️ Edit status</button>
+                )}
               </div>
             )}
           </div>
@@ -499,9 +529,10 @@ export default function MatchDetail() {
         </div>
       </div>
 
-      <AttendanceSection match={match} onRefresh={load} />
-      <ExpensesSection match={match} onRefresh={load} />
-      <PollsSection match={match} />
+      <AttendanceSection match={match} onRefresh={load} readOnly={readOnly} />
+      <ExpensesSection match={match} onRefresh={load} readOnly={readOnly} />
+      <PollsSection match={match} readOnly={readOnly} />
     </div>
   );
 }
+

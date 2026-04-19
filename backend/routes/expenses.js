@@ -38,6 +38,9 @@ function computeSplits(expenseId, matchId, splitAmong, amount, paidBy, customPla
 
 // GET expenses for a match
 router.get('/match/:matchId', (req, res) => {
+  const match = db.prepare('SELECT team_id FROM matches WHERE id = ?').get(req.params.matchId);
+  if (!match) return res.status(404).json({ error: 'Match not found' });
+
   const expenses = db.prepare(`
     SELECT e.*, p.name as paid_by_name,
       (SELECT SUM(es.share_amount) FROM expense_splits es WHERE es.expense_id = e.id AND es.settled = 0) as unsettled_amount

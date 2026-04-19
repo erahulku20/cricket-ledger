@@ -98,6 +98,15 @@ async function initDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
       description TEXT,
+      access_code TEXT UNIQUE,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      email TEXT UNIQUE,
+      phone TEXT UNIQUE,
+      role TEXT NOT NULL CHECK(role IN ('admin','member')) DEFAULT 'member',
       created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS players (
@@ -165,6 +174,15 @@ async function initDb() {
   );
   if (!matchColNames.has('match_number')) {
     _db.exec('ALTER TABLE matches ADD COLUMN match_number INTEGER NOT NULL DEFAULT 1');
+  }
+
+  const teamCols = _db.exec("PRAGMA table_info(teams)");
+  const teamColNames = new Set(
+    (teamCols[0] && teamCols[0].values ? teamCols[0].values : []).map(col => col[1])
+  );
+  if (!teamColNames.has('access_code')) {
+    _db.exec('ALTER TABLE teams ADD COLUMN access_code TEXT');
+    _db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_access_code ON teams(access_code)');
   }
 
   const expenseCols = _db.exec("PRAGMA table_info(expenses)");

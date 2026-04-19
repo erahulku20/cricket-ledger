@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { teamsAPI, playersAPI } from '../api';
+import { teamsAPI, playersAPI, isReadOnly } from '../api';
 
 export default function TeamDetail() {
+  const readOnly = isReadOnly;
   const { id } = useParams();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -143,13 +144,20 @@ export default function TeamDetail() {
         <Link to="/teams" className="text-emerald-900/60 hover:text-emerald-800 text-sm">← Teams</Link>
         <span className="text-emerald-900/30">/</span>
         <h1 className="title-xl">{team.name}</h1>
+        <Link to={`/teams/${id}/dashboard`} className="btn-muted px-3 py-1 text-xs ml-auto">
+          📊 Dashboard
+        </Link>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p className="text-emerald-900/70 text-sm">{team.players.length} player{team.players.length !== 1 ? 's' : ''}</p>
-        <button onClick={() => setShowForm(true)} className="btn-primary px-4 py-2 text-sm">
-          + Add Player
-        </button>
+        {!readOnly ? (
+          <button onClick={() => setShowForm(true)} className="btn-primary px-4 py-2 text-sm">
+            + Add Player
+          </button>
+        ) : (
+          <p className="text-sm text-rose-700">Read-only mode is active. Player roster updates are disabled.</p>
+        )}
       </div>
 
       <style>{`
@@ -312,12 +320,14 @@ export default function TeamDetail() {
                       </div>
                       <div className="ml-2 text-right">
                         <p className="text-lg font-bold text-emerald-700">₹{Number(s.amount).toFixed(2)}</p>
-                        <button
-                          onClick={() => { setSelectedPayment(s); setShowPaymentModal(true); }}
-                          className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded mt-1 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          📝 Record
-                        </button>
+                        {!readOnly && (
+                          <button
+                            onClick={() => { setSelectedPayment(s); setShowPaymentModal(true); }}
+                            className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded mt-1 transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            📝 Record
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -467,7 +477,7 @@ export default function TeamDetail() {
 
         </div>
       )}
-      {showForm && (
+      {showForm && !readOnly && (
         <div className="form-card p-6 fade-in">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
             <div>
@@ -526,12 +536,16 @@ export default function TeamDetail() {
                   <td className="text-slate-500">{p.phone || '—'}</td>
                   <td className="text-slate-400 text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
                   <td className="text-right">
-                    <button onClick={() => startEdit(p)} className="text-emerald-700 hover:text-emerald-900 text-xs border border-emerald-200 rounded px-2 py-1 mr-2 transition">
-                      Edit
-                    </button>
-                    <button onClick={() => deletePlayer(p.id)} className="text-rose-500 hover:text-rose-700 text-xs border border-rose-200 rounded px-2 py-1 transition">
-                      Remove
-                    </button>
+                    {!readOnly && (
+                      <>
+                        <button onClick={() => startEdit(p)} className="text-emerald-700 hover:text-emerald-900 text-xs border border-emerald-200 rounded px-2 py-1 mr-2 transition">
+                          Edit
+                        </button>
+                        <button onClick={() => deletePlayer(p.id)} className="text-rose-500 hover:text-rose-700 text-xs border border-rose-200 rounded px-2 py-1 transition">
+                          Remove
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

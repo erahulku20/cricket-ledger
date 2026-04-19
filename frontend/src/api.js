@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_API_BASE_URL || '/api';
+const rawBaseURL = process.env.REACT_APP_API_BASE_URL || '/api';
+const baseURL = rawBaseURL.endsWith('/api')
+  ? rawBaseURL
+  : rawBaseURL.replace(/\/+$/g, '').trim() + '/api';
 const api = axios.create({ baseURL });
 
 export const teamsAPI = {
@@ -53,3 +56,5 @@ export const backupAPI = {
 export const dashboardAPI = {
   get: () => api.get('/dashboard').then(r => r.data),
 };
+
+export const isReadOnly = process.env.REACT_APP_READ_ONLY === 'true';

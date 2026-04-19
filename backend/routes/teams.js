@@ -16,7 +16,7 @@ function splitAmountEvenly(totalAmount, itemCount) {
 // GET all teams
 router.get('/', (req, res) => {
   const teams = db.prepare(`
-    SELECT t.*, COUNT(p.id) as player_count
+    SELECT t.id, t.name, t.description, t.created_at, COUNT(p.id) as player_count
     FROM teams t
     LEFT JOIN players p ON p.team_id = t.id
     GROUP BY t.id
@@ -228,8 +228,10 @@ router.get('/:id/final-settlement', (req, res) => {
 router.get('/:id', (req, res) => {
   const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(req.params.id);
   if (!team) return res.status(404).json({ error: 'Team not found' });
+
   const players = db.prepare('SELECT * FROM players WHERE team_id = ? ORDER BY name').all(req.params.id);
-  res.json({ ...team, players });
+  const safeTeam = { id: team.id, name: team.name, description: team.description, created_at: team.created_at };
+  res.json({ ...safeTeam, players });
 });
 
 // POST create team
