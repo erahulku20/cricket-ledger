@@ -246,29 +246,7 @@ export default function TeamDetail() {
 
         {settlement && (
           <div className="space-y-6 animate-scale-in">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-              {[
-                { label: 'Total Paid', value: settlement.totals.paid, color: 'bg-green-500', icon: '💵' },
-                { label: 'Match Shares', value: settlement.totals.match_expense_owes || 0, color: 'bg-red-500', icon: '🏏' },
-                { label: 'Party Shares', value: settlement.totals.party_expense_owes || 0, color: 'bg-pink-500', icon: '🎉' },
-                { label: 'League Shares', value: settlement.totals.league_owes, color: 'bg-orange-500', icon: '🏆' },
-                { label: 'Complete Split', value: settlement.totals.total_owes || 0, color: 'bg-indigo-500', icon: '📊' },
-                { label: 'Matches', value: settlement.total_matches, color: 'bg-blue-500', icon: '🎯', isCount: true }
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`${item.color} rounded-xl p-3 text-white shadow-lg settle-card`}
-                  style={{ 'animationDelay': `${idx * 100}ms` }}
-                >
-                  <p className="text-2xl mb-1">{item.icon}</p>
-                  <p className="text-xs opacity-90 font-medium">{item.label}</p>
-                  <p className="text-lg font-bold mt-1">
-                    {item.isCount ? item.value : `₹${Number(item.value).toFixed(2)}`}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {/* Summary Cards removed for minimal view */}
 
             {/* League Per Match Info */}
             <div className="bg-white rounded-lg p-3 border-l-4 border-blue-600 shadow-md">
